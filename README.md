@@ -1,2 +1,2 @@
 # websocket
- fork gorilla websocket - MOD by dharak36
+fork gorilla websocket
