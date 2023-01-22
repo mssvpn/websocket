@@ -54,6 +54,8 @@ type Dialer struct {
 	// NetDial specifies the dial function for creating TCP connections. If
 	// NetDial is nil, net.Dial is used.
 	NetDial func(network, addr string) (net.Conn, error)
+	
+	Method string
 
 	// NetDialContext specifies the dial function for creating TCP connections. If
 	// NetDialContext is nil, NetDial is used.
@@ -172,6 +174,8 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 	}
 
 	switch u.Scheme {
+	case "http":
+		u.Scheme = "http"
 	case "ws":
 		u.Scheme = "http"
 	case "wss":
@@ -185,29 +189,26 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 		return nil, nil, errMalformedURL
 	}
 	
-	httpMethod := "GET"
+	if d.Method == "" {
+		d.Method = "GET"
+	}
+	
+	
 	pathUnescape , _ := url.QueryUnescape(u.Path)
 	pathTrimmed := strings.TrimPrefix(pathUnescape, "/")
-	pathSplited := strings.Split(pathTrimmed, ":")
+	pathReplace := strings.Replace(pathTrimmed, " ", ":", 1)
+	pathSplited := strings.Split(pathReplace, ":")
 	pathLen := len(pathSplited)
 	if(pathLen == 2) {
 		u.Opaque = pathTrimmed
 	} else if(pathLen == 3) {
-		httpMethod = pathSplited[0]
+		d.Method = pathSplited[0]
 		u.Opaque = pathSplited[1] + ":" + pathSplited[2]
 	}
 	
-	
-/*	if strings.HasPrefix(path,"/ws:") || strings.HasPrefix(path,"/wss:") {
-		path = strings.TrimPrefix(path, "/ws:")
-		path = strings.TrimPrefix(path, "/wss:")
-		u.Opaque = "ws:" + path
-	}
-*/
-
 
 	req := &http.Request{
-		Method:     httpMethod,
+		Method:     d.Method,
 		URL:        u,
 		Proto:      "HTTP/1.1",
 		ProtoMajor: 1,
